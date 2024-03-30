@@ -180,45 +180,11 @@ async fn fetchagency(client: &Client, agency: AgencyInfo)  {
             
             println!("{} vehicles bytes: {}", &agency.onetrip, bytes.len());
 
-            if agency.onetrip.as_str() == "f-octa~rt" {
-                let octa_raw_file = client.get("https://api.octa.net/GTFSRealTime/protoBuf/VehiclePositions.aspx").send().await;
-                match octa_raw_file {
-                    Ok(octa_raw_file) => {
-                        let octa_raw_file = octa_raw_file.bytes().await.unwrap();
-                        let octa_vehicles = parse_protobuf_message(&octa_raw_file).unwrap();
-                        if octa_vehicles.header.timestamp.unwrap() > timestamp_vehicles && !octa_vehicles.entity.is_empty() {
-                            timestamp_vehicles = octa_vehicles.header.timestamp.unwrap();
-                            let _ = persist_gtfs_rt(
-                                &octa_vehicles,
-                                "f-octa~rt",
-                                "vehicles",
-                            );
-                        }
-                    }
-                    Err(e) => {
-                        println!("error fetching raw octa file: {:?}", e);
-                        let data = parse_protobuf_message(&bytes).unwrap();
-                        if data.header.timestamp.unwrap() > timestamp_vehicles && !data.entity.is_empty() {
-                            timestamp_vehicles = data.header.timestamp.unwrap();
-                            let _ = persist_gtfs_rt(
-                                &data,
-                                "f-octa~rt",
-                                "vehicles",
-                            );
-                        }
-                    }
-                }
-            } else {
-                let data = parse_protobuf_message(&bytes).unwrap();
-                if data.header.timestamp.unwrap() > timestamp_vehicles && !data.entity.is_empty() {
-                    timestamp_vehicles = data.header.timestamp.unwrap();
-                    let _ = persist_gtfs_rt(
-                        &data,
-                        &agency.onetrip,
-                        "vehicles",
-                    );
-                }
-            }   
+            let data = parse_protobuf_message(&bytes).unwrap();
+            if data.header.timestamp.unwrap() > timestamp_vehicles && !data.entity.is_empty() {
+                timestamp_vehicles = data.header.timestamp.unwrap();
+                let _ = persist_gtfs_rt(&data, &agency.onetrip, "vehicles");
+            }
         }
 
         if trips_result.is_some() {
